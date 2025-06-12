@@ -6,9 +6,8 @@ from models import db, User, Speaker, Review, Request
 db = SQLAlchemy()
 migrate = Migrate()
 app = Flask(__name__)
-app.config.from_object(config_class)
 
-    # Initialize extensions
+# Initialize extensions
 db.init_app(app)
 migrate.init_app(app, db)
 
