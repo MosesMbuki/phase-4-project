@@ -21,6 +21,10 @@ class User(db.Model):
     reviews = db.relationship('Review', backref='author', lazy=True)
     requests = db.relationship('Request', backref='requester', lazy=True)
     
+class TokenBlocklist(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    jti = db.Column(db.String(36), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, nullable=False)
 
 class Manufacturer(db.Model):
     __tablename__ = 'manufacturers'

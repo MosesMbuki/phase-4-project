@@ -1,25 +1,56 @@
+from datetime import timedelta
 from flask import Flask, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
+from models import db, User
 from flask_migrate import Migrate
-from models import db, User, Speaker, Review, Request
+from flask_mail import Mail
+from flask_jwt_extended import JWTManager
 
-db = SQLAlchemy()
-migrate = Migrate()
 app = Flask(__name__)
 
-# Initialize extensions
-db.init_app(app)
-migrate.init_app(app, db)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Register blueprints
-from app.routes.auth import auth_bp
-from app.routes.speakers import speakers_bp
-from app.routes.reviews import reviews_bp
-from app.routes.requests import requests_bp
+migrate = Migrate(app, db)
+db.init_app(app)
+
+# mail configurations
+
+app.config['MAIL_SERVER'] = 'smtp.gmail.com' 
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config["MAIL_USE_SSL"] = False
+app.config['MAIL_USERNAME'] = 'moses.mutitu@student.moringaschool.com'
+app.config['MAIL_PASSWORD'] = 'gjos cyhr rgge egrd' 
+app.config['MAIL_DEFAULT_SENDER'] = 'yourrmail@gmail.com'
+
+mail = Mail(app)
+
+# JWT
+app.config["JWT_SECRET_KEY"] = "sjusefvyilgfvksbhvfiknhalvufn"  
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=2)
+jwt = JWTManager(app)
+jwt.init_app(app)
+
+# Register Blueprints
+from routes import *
 
 app.register_blueprint(auth_bp)
-app.register_blueprint(speakers_bp)
-app.register_blueprint(reviews_bp)
-app.register_blueprint(requests_bp)
+app.register_blueprint(user_bp)
+app.register_blueprint(speaker_bp)
+app.register_blueprint(review_bp)
+app.register_blueprint(request_bp)
 
-    
+# Callback function to check if a JWT exists in the database blocklist
+@jwt.token_in_blocklist_loader
+def check_if_token_revoked(jwt_header, jwt_payload: dict) -> bool:
+    jti = jwt_payload["jti"]
+    token = db.session.query(TokenBlocklist.id).filter_by(jti=jti).scalar()
+
+    return token is not None
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
+
+
