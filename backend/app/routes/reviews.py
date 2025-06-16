@@ -1,10 +1,10 @@
 from models import Review, db, User, Speaker
 from flask import Blueprint, jsonify, request
 
-Reviews = Blueprint("reviews", __name__)
+reviews_bp = Blueprint("reviews", __name__)
 
 # Create a new review
-@Reviews.route("/reviews", methods=["POST"])
+@reviews_bp.route("/reviews", methods=["POST"])
 def create_review():
     data = request.get_json()
     
@@ -33,7 +33,7 @@ def create_review():
     return jsonify({"message": "Review created successfully"}), 201
 
 # fetch all reviews for a speaker
-@Reviews.route("/reviews/speaker/<int:speaker_id>", methods=["GET"])
+@reviews_bp.route("/reviews/speaker/<int:speaker_id>", methods=["GET"])
 def fetch_reviews_by_speaker(speaker_id):
     speaker = Speaker.query.get(speaker_id)
 
@@ -56,7 +56,7 @@ def fetch_reviews_by_speaker(speaker_id):
     return jsonify(review_list), 200
 
 # Fetch all reviews by a user
-@Reviews.route("/reviews/user/<int:user_id>", methods=["GET"])
+@reviews_bp.route("/reviews/user/<int:user_id>", methods=["GET"])
 def fetch_reviews_by_user(user_id):
     user = User.query.get(user_id)
 
@@ -79,7 +79,7 @@ def fetch_reviews_by_user(user_id):
     return jsonify(review_list), 200
 
 # Delete a review
-@Reviews.route("/reviews/<int:review_id>", methods=["DELETE"])
+@reviews_bp.route("/reviews/<int:review_id>", methods=["DELETE"])
 def delete_review(review_id):
     review = Review.query.get(review_id)
 
@@ -92,7 +92,7 @@ def delete_review(review_id):
     return jsonify({"message": "Review deleted successfully"}), 200
 
 # Update a review
-@Reviews.route("/reviews/<int:review_id>", methods=["PUT"])
+@reviews_bp.route("/reviews/<int:review_id>", methods=["PUT"])
 def update_review(review_id):
     data = request.get_json()
     

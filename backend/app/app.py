@@ -1,5 +1,5 @@
 from datetime import timedelta
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify
 from models import db, User
 from flask_migrate import Migrate
 from flask_mail import Mail
@@ -36,9 +36,9 @@ from routes import *
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(user_bp)
-app.register_blueprint(speaker_bp)
-app.register_blueprint(review_bp)
-app.register_blueprint(request_bp)
+app.register_blueprint(speakers_bp)
+app.register_blueprint(reviews_bp)
+app.register_blueprint(requests_bp)
 
 # Callback function to check if a JWT exists in the database blocklist
 @jwt.token_in_blocklist_loader
