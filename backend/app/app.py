@@ -19,9 +19,9 @@ app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config["MAIL_USE_SSL"] = False
-app.config['MAIL_USERNAME'] = 'moses.mutitu@student.moringaschool.com'
+app.config['MAIL_USERNAME'] = 'Audio Alchemy'
 app.config['MAIL_PASSWORD'] = 'gjos cyhr rgge egrd' 
-app.config['MAIL_DEFAULT_SENDER'] = 'yourrmail@gmail.com'
+app.config['MAIL_DEFAULT_SENDER'] = 'moses.mutitu@student.moringaschool.com'
 
 mail = Mail(app)
 

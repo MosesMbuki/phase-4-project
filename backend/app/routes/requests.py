@@ -83,7 +83,7 @@ def update_request(request_id):
     current_user = get_jwt_identity()
     user = User.query.get(current_user)
     
-    if not user or not user.is_admin:
+    if not user:
         return jsonify({'error': 'Access denied'}), 403
     
     req = Request.query.get(request_id)
@@ -144,3 +144,5 @@ def fetch_request_status(request_id):
     }
     
     return jsonify(request_data), 200
+
+# approve or reject request
