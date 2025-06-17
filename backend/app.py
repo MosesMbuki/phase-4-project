@@ -1,12 +1,14 @@
 from datetime import timedelta
-from flask import Flask, jsonify
-from models import db, User
+from flask import Flask, request, jsonify
+from models import db, TokenBlocklist
 from flask_migrate import Migrate
 from flask_mail import Mail
 from flask_jwt_extended import JWTManager
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
+# Configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -28,17 +30,21 @@ mail = Mail(app)
 # JWT
 app.config["JWT_SECRET_KEY"] = "sjusefvyilgfvksbhvfiknhalvufn"  
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=2)
+
+# test
+app.config["JWT_VERIFY_SUB"] = False
+
 jwt = JWTManager(app)
 jwt.init_app(app)
 
 # Register Blueprints
 from routes import *
-
 app.register_blueprint(auth_bp)
 app.register_blueprint(user_bp)
 app.register_blueprint(speakers_bp)
-app.register_blueprint(reviews_bp)
 app.register_blueprint(requests_bp)
+
+
 
 # Callback function to check if a JWT exists in the database blocklist
 @jwt.token_in_blocklist_loader

@@ -1,4 +1,4 @@
-from app.models import User, Speaker, Review, Request
+from models import User, Speaker, Review, Request
 from app import db
 from flask import Blueprint, request, jsonify, abort
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -145,4 +145,4 @@ def fetch_request_status(request_id):
     
     return jsonify(request_data), 200
 
-# approve or reject request
+# approve or reject request by admin

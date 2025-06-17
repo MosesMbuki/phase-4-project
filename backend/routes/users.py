@@ -36,10 +36,10 @@ def create_user():
 
     # Sending a welcome email to the new user
     try:
-        msg = Message(subject="Welcome to StackOverflow Clone",
+        msg = Message(subject="Welcome to Audio Alchemy",
         recipients=[email],
         sender=app.config['MAIL_DEFAULT_SENDER'],
-        body=f"Hello {username},\n\nThank you for registering on StackOverflow Clone. We are excited to have you on board!\n\nBest regards,\nStackOverflow Clone Team")
+        body=f"Hello {username},\n\nThank you for registering on Audio Alchemy. We are excited to have you on board!\n\nBest regards,\nAudio Alchemy Team")
         mail.send(msg)        
         # Commit the new user to the database after sending the email
         db.session.commit()
@@ -78,7 +78,7 @@ def update_user(user_id):
         msg = Message(subject="Alert! Profile Update",
         recipients=[email],
         sender=app.config['MAIL_DEFAULT_SENDER'],
-        body=f"Hello {user.username},\n\nYour profile has been updated successfully on StackOverflow Clone.\n\nBest regards,\nStackOverflow Clone Team")
+        body=f"Hello {user.username},\n\nYour profile has been updated successfully on Audio Alchemy.\n\nBest regards,\nAudio Alchemy Team")
         mail.send(msg)        
         # Commit the new user to the database after sending the email
         db.session.commit()

@@ -1,6 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import MetaData
-from app import db
 from datetime import datetime
 
 metadata = MetaData()
