@@ -16,13 +16,16 @@ def create_request():
     speaker_name = data['speaker_name']
     manufacturer = data.get('manufacturer', None)
     reason = data['reason']
-    
+
     speaker = Speaker.query.get(speaker_name)
     if not speaker:
         return jsonify({'error': 'Speaker not found'}), 404
     
     user_id = get_jwt_identity()
     new_request = Request(user_id=user_id, speaker_name=speaker_name, manufacturer=manufacturer, reason=reason)
+    
+    default_status = 'Pending'
+    new_request.status = default_status
     
     db.session.add(new_request)
     db.session.commit()
@@ -140,7 +143,7 @@ def update_request_status(request_id):
     
     data = request.get_json()
     
-    if 'status' not in data or data['status'] not in ['approved','Pending', 'rejected']:
+    if 'status' not in data or data['status'] not in ['approved','pending', 'rejected']:
         return jsonify({'error': 'Invalid status'}), 400
     
     req.status = data['status']

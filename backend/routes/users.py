@@ -139,13 +139,8 @@ def fetch_all_users():
 def delete_user():
     current_user_id = get_jwt_identity()
     user = User.query.get(current_user_id)
-
-    #
-
     if not user:
         return jsonify({"error": "User not found"}), 404
-
-   
 
     # if user had any requests, reviews, they should be deleted as well
     requests = Request.query.filter_by(user_id=current_user_id).all()
