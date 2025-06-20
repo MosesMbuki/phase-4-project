@@ -4,7 +4,6 @@ from models import db, TokenBlocklist
 from flask_migrate import Migrate
 from flask_mail import Mail
 from flask_jwt_extended import JWTManager
-from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
@@ -21,7 +20,7 @@ app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config["MAIL_USE_SSL"] = False
-app.config['MAIL_USERNAME'] = 'Audio Alchemy'
+app.config['MAIL_USERNAME'] = 'audioalchemy95@gmail.com'
 app.config['MAIL_PASSWORD'] = 'ikcz hlex mazb njdw'
 app.config['MAIL_DEFAULT_SENDER'] = 'audioalchemy95@gmail.com'
 
@@ -43,6 +42,7 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(user_bp)
 app.register_blueprint(speakers_bp)
 app.register_blueprint(requests_bp)
+app.register_blueprint(reviews_bp)
 
 
 

@@ -11,7 +11,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
+    password = db.Column(db.String(255), nullable=False)
     profile_pic = db.Column(db.String(255))
     join_date = db.Column(db.DateTime, default=datetime.utcnow)
     is_admin = db.Column(db.Boolean, default=False)
@@ -68,7 +68,7 @@ class Review(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     speaker_id = db.Column(db.Integer, db.ForeignKey('speakers.id'), nullable=False)
     rating = db.Column(db.SmallInteger, nullable=False)
-    comment_text = db.Column(db.Text)
+    comment = db.Column(db.Text)
     post_date = db.Column(db.DateTime, default=datetime.utcnow)
     is_approved = db.Column(db.Boolean, default=False)
 

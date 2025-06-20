@@ -6,23 +6,23 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 requests_bp = Blueprint('requests', __name__)
 
 # create new request
-@requests_bp.route('/requests', methods=['POST'])
+@requests_bp.route('/requests/create_request', methods=['POST'])
 @jwt_required()
 def create_request():
     data = request.get_json()
+    if not data or 'speaker_name' not in data or 'reason' not in data:
+        return jsonify({'error': 'speaker_name and reason are required'}), 400
     
-    if not data or 'speaker_id' not in data or 'request_type' not in data:
-        return jsonify({'error': 'Invalid input'}), 400
+    speaker_name = data['speaker_name']
+    manufacturer = data.get('manufacturer', None)
+    reason = data['reason']
     
-    speaker_id = data['speaker_id']
-    request_type = data['request_type']
-    
-    speaker = Speaker.query.get(speaker_id)
+    speaker = Speaker.query.get(speaker_name)
     if not speaker:
         return jsonify({'error': 'Speaker not found'}), 404
     
     user_id = get_jwt_identity()
-    new_request = Request(user_id=user_id, speaker_id=speaker_id, request_type=request_type)
+    new_request = Request(user_id=user_id, speaker_name=speaker_name, manufacturer=manufacturer, reason=reason)
     
     db.session.add(new_request)
     db.session.commit()
@@ -43,9 +43,10 @@ def fetch_requests_by_user():
     for req in requests:
         request_data = {
             'id': req.id,
-            'speaker_id': req.speaker_id,
-            'request_type': req.request_type,
-            'created_at': req.created_at
+            'speaker_name': req.speaker_name,
+            'manufacturer': req.manufacturer,
+            'reason': req.reason,
+            'request_date': req.request_date
         }
         request_list.append(request_data)
     
@@ -68,9 +69,11 @@ def fetch_all_requests():
         request_data = {
             'id': req.id,
             'user_id': req.user_id,
-            'speaker_id': req.speaker_id,
-            'request_type': req.request_type,
-            'created_at': req.created_at
+            'speaker_name': req.speaker_name,
+            'manufacturer': req.manufacturer,
+            'reason': req.reason,
+            'status': req.status,
+            'request_date': req.request_date
         }
         request_list.append(request_data)
     
@@ -93,8 +96,8 @@ def update_request(request_id):
     
     data = request.get_json()
     
-    if 'request_type' in data:
-        req.request_type = data['request_type']
+    if 'reason' in data:
+        req.reason = data['reason']
     
     db.session.commit()
     
@@ -120,10 +123,10 @@ def delete_request(request_id):
     
     return jsonify({'message': 'Request deleted successfully'}), 200
 
-# fetch request status
-@requests_bp.route('/requests/<int:request_id>', methods=['GET'])
+# approve or reject request by admin
+@requests_bp.route('/requests/<int:request_id>/status', methods=['PUT'])
 @jwt_required()
-def fetch_request_status(request_id):
+def update_request_status(request_id):
     current_user = get_jwt_identity()
     user = User.query.get(current_user)
     
@@ -135,14 +138,13 @@ def fetch_request_status(request_id):
     if not req:
         return jsonify({'error': 'Request not found'}), 404
     
-    request_data = {
-        'id': req.id,
-        'user_id': req.user_id,
-        'speaker_id': req.speaker_id,
-        'request_type': req.request_type,
-        'created_at': req.created_at
-    }
+    data = request.get_json()
     
-    return jsonify(request_data), 200
-
-# approve or reject request by admin
+    if 'status' not in data or data['status'] not in ['approved','Pending', 'rejected']:
+        return jsonify({'error': 'Invalid status'}), 400
+    
+    req.status = data['status']
+    
+    db.session.commit()
+    
+    return jsonify({'message': 'Request status updated successfully', 'id': req.id}), 200

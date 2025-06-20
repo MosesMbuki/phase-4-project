@@ -1,11 +1,20 @@
 from flask import Blueprint, request, jsonify
 from models import Speaker, Manufacturer, Category, Review
 from app import db
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 speakers_bp = Blueprint('speakers', __name__)
 
 @speakers_bp.route('/speakers', methods=['POST'])
+@jwt_required
 def create_speaker():
+    current_user = get_jwt_identity()
+    if not current_user.is_admin:
+        return jsonify({'error': 'Permission denied'}), 403
+    # Ensure the request contains valid JSON data
+    if not request.is_json:
+        return jsonify({'error': 'Invalid JSON format'}), 400
+    # Extract data from the request
     data = request.get_json()
     
     if not data or 'model_name' not in data or 'manufacturer_id' not in data or 'category_id' not in data:
@@ -89,7 +98,7 @@ def add_speaker():
         price=data.get('price'),
         specs=data.get('specs'),
         image_url=data.get('image_url'),
-        # added_by=current_user_id
+        
     )
     
     db.session.add(speaker)
