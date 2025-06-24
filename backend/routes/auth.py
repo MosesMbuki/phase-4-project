@@ -46,8 +46,7 @@ def fetch_current_user():
         "username": user.username,
         "email": user.email,
         "is_admin": user.is_admin,
-        "is_blocked": user.is_blocked,
-        "created_at": user.created_at
+        "join_date": user.join_date
     }
     return jsonify(user_data), 200
 
