@@ -1,13 +1,12 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { UserContext } from '../context/UserContext';
+import { useLocation, useNavigate } from 'react-router-dom';
 import styles from '../SignInUpForm.module.css';
 
 const SignInUpForm = () => {
-  const { 
-    register_user, 
-    login_user, 
-    isLoading 
-  } = useContext(UserContext);
+  const { register_user, login_user, isLoading } = useContext(UserContext);
+  const location = useLocation();
+  const navigate = useNavigate();
   
   const [isRightPanelActive, setIsRightPanelActive] = useState(false);
   const [formData, setFormData] = useState({
@@ -17,13 +16,20 @@ const SignInUpForm = () => {
   });
   const [errors, setErrors] = useState({});
 
+  useEffect(() => {
+    if (location.state?.formType === 'signup') {
+      setIsRightPanelActive(true);
+    } else {
+      setIsRightPanelActive(false);
+    }
+  }, [location.state]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
-    // Clear error when user types
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -44,10 +50,8 @@ const SignInUpForm = () => {
       newErrors.password = 'Password must be at least 6 characters';
     }
     
-    if (isSignUp) {
-      if (!formData.name) {
-        newErrors.name = 'Name is required';
-      }
+    if (isSignUp && !formData.name) {
+      newErrors.name = 'Name is required';
     }
     
     setErrors(newErrors);
@@ -58,18 +62,15 @@ const SignInUpForm = () => {
     e.preventDefault();
     if (!validateForm(true)) return;
     
-    const { success, error } = await register_user(
+    const { success } = await register_user(
       formData.name, 
       formData.email, 
       formData.password
     );
     
     if (success) {
-      setFormData({
-        name: '',
-        email: '',
-        password: ''
-      });
+      setFormData({ name: '', email: '', password: '' });
+      navigate('/');
     }
   };
 
@@ -77,7 +78,10 @@ const SignInUpForm = () => {
     e.preventDefault();
     if (!validateForm(false)) return;
     
-    await login_user(formData.email, formData.password);
+    const success = await login_user(formData.email, formData.password);
+    if (success) {
+      navigate('/');
+    }
   };
 
   return (
@@ -147,7 +151,7 @@ const SignInUpForm = () => {
             />
             {errors.password && <span className={styles['error-message']}>{errors.password}</span>}
             
-            <a href="#">Forgot your password?</a>
+            <a href="#" className={styles['forgot-password']}>Forgot your password?</a>
             
             <button type="submit" disabled={isLoading}>
               {isLoading ? 'Signing In...' : 'Sign In'}
