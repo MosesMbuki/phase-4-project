@@ -56,25 +56,36 @@ const SpeakerDetailPage = () => {
       message.warning('Please provide both rating and review text');
       return;
     }
-
+  
     try {
       setReviewLoading(true);
-      await fetchWithAuth(`/speakers/${id}/reviews`, {
+      const response = await fetchWithAuth('/reviews/create_review', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          rating,
+          speaker_id: id,
+          rating: rating,
           comment: reviewText
         })
       });
+  
+      if (!response.ok) {
+        throw new Error('Failed to submit review');
+      }
+  
+      const data = await response.json();
+      message.success(data.message || 'Review submitted successfully!');
       
       // Refresh speaker data to show new review
-      const data = await fetchWithAuth(`/speakers/${id}`);
-      setSpeaker(data);
+      const speakerData = await fetchWithAuth(`/speakers/${id}`);
+      setSpeaker(speakerData);
       setReviewText('');
       setRating(0);
-      message.success('Review submitted successfully!');
     } catch (error) {
-      message.error('Failed to submit review');
+      message.error(error.message || 'Failed to submit review');
+      console.error('Review submission error:', error);
     } finally {
       setReviewLoading(false);
     }
