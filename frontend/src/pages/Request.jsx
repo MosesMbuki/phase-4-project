@@ -6,7 +6,7 @@ import { Modal } from 'antd';
 import CreateRequestModal from '../components/CreateRequestModal';
 
 const Request = () => {
-  // Use the existing UserContext (make sure you're not trying to use useUserContext)
+
   const { currentUser, fetchWithAuth } = useContext(UserContext);
   
   const [requests, setRequests] = useState([]);
@@ -34,15 +34,25 @@ const fetchRequests = async () => {
   const createRequest = async (speakerName, manufacturer, reason) => {
     try {
       setLoading(true);
-      await fetchWithAuth('/requests/create_request', {
+      const response = await fetchWithAuth('/requests/create_request', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           speaker_name: speakerName,
-          manufacturer,
-          reason
+          manufacturer: manufacturer,
+          reason: reason
         })
       });
-      await fetchRequests(); // Refresh the list
+  
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create request');
+      }
+  
+      return result;
     } catch (err) {
       throw err;
     } finally {
@@ -54,11 +64,14 @@ const fetchRequests = async () => {
   const updateRequestStatus = async (requestId, status) => {
     try {
       setLoading(true);
-      await fetchWithAuth(`/requests/user/${requestId}`, {
-        method: 'PATCH',
+      await fetchWithAuth(`/requests/${requestId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ status })
       });
-      await fetchRequests(); // Refresh the list
+      await fetchRequests();
     } catch (err) {
       throw err;
     } finally {

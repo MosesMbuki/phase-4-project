@@ -1,8 +1,28 @@
-import React from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { UserContext } from '../context/UserContext';  
 
 const Home = () => {
   const navigate = useNavigate();
+  const { fetchWithAuth } = useContext(UserContext);
+  const [featuredSpeakers, setFeaturedSpeakers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFeaturedSpeakers = async () => {
+      try {
+        const data = await fetchWithAuth('/speakers?limit=3');
+        setFeaturedSpeakers(data);
+      } catch (error) {
+        console.error('Error fetching speakers:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeaturedSpeakers();
+  }, [fetchWithAuth]);;
+
   return (
     <div className="min-h-screen bg-black text-white font-sans overflow-x-hidden">
       {/* Hero Section */}
@@ -40,28 +60,30 @@ const Home = () => {
           <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-114 h-0.5 bg-gradient-to-r from-[#FF4B2B] to-[#FF416C] mt-8"></span>
         </h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {[
-            { id: 1, name: 'AURUM SPEAKERS', price: '$2,499', image: 'https://m.media-amazon.com/images/I/81XFmaAxroL._AC_SL1500_.jpg' },
-            { id: 2, name: 'ETHEREAL FLOORSTANDING', price: '$899', image: 'https://m.media-amazon.com/images/I/61eeSyKKIOL._AC_SL1200_.jpg' },
-            { id: 3, name: 'ALCHEMIST TURNTABLE', price: '$1,799', image: 'https://m.media-amazon.com/images/I/81fiFUlAjCL._AC_SL1500_.jpg' },
-          ].map((product) => (
-            <div key={product.id} className="relative h-96 overflow-hidden rounded-lg group">
-              <img 
-                src={product.image} 
-                alt={product.name} 
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-              <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black to-transparent">
-                <h3 className="text-2xl font-medium mb-1">{product.name}</h3>
-                <p className="mb-4 text-gray-300">{product.price}</p>
-                <button className="bg-gradient-to-r from-[#FF4B2B] to-[#FF416C] px-6 py-2 text-sm uppercase tracking-wider transition-all duration-300 hover:opacity-90">
-                  DISCOVER
-                </button>
+        {loading ? (
+          <div className="text-center">Loading featured speakers...</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {featuredSpeakers.map((speaker) => (
+              <div 
+                key={speaker.id} 
+                className="relative h-96 overflow-hidden rounded-lg group cursor-pointer"
+                onClick={() => navigate(`/speakers/${speaker.id}`)}
+              >
+                <img 
+                  src={speaker.image_url} 
+                  alt={speaker.model_name} 
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black to-transparent">
+                  <h3 className="text-2xl font-medium mb-1">{speaker.model_name}</h3>
+                  <p className="mb-4 text-gray-300">${speaker.price?.toFixed(2)}</p>
+                  <p className="text-sm text-gray-400">{speaker.manufacturer}</p>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Brand Story */}

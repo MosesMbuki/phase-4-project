@@ -8,32 +8,52 @@ reviews_bp = Blueprint("reviews", __name__)
 @reviews_bp.route("/reviews/create_review", methods=["POST"])
 @jwt_required()
 def create_review():
-    current_user_id = get_jwt_identity()
-    
-    data = request.get_json()
-    
-    speaker_id = data.get("speaker_id")
-    rating = data.get("rating")
-    comment = data.get("comment")
+    try:
+        current_user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({"error": "Request data is required"}), 400
 
-    if not User.query.get(current_user_id):
-        return jsonify({"error": "You must be logged in to review."}), 404
-    # checks if speaker_id, rating, and comment are provided
-    if not speaker_id or not rating or not comment:
-        return jsonify({"error": "speaker_id, rating, and comment are required"}), 400
-    speaker = Speaker.query.get(speaker_id)
-    if not speaker:
-        return jsonify({"error": "Speaker not found"}), 404
-    
-    if rating < 1 or rating > 5:
-        return jsonify({"error": "Rating must be between 1 and 5"}), 400
-    
-    review = Review(user_id=current_user_id, speaker_id=speaker_id, rating=rating, comment=comment)
-    
-    db.session.add(review)
-    db.session.commit()
+        speaker_id = data.get("speaker_id")
+        rating = data.get("rating")
+        comment = data.get("comment")
 
-    return jsonify({"message": "Review created successfully"}), 201
+        if not all([speaker_id, rating, comment]):
+            return jsonify({"error": "speaker_id, rating, and comment are required"}), 400
+
+        speaker = Speaker.query.get(speaker_id)
+        if not speaker:
+            return jsonify({"error": "Speaker not found"}), 404
+        
+        if not User.query.get(current_user_id):
+            return jsonify({"error": "User not found"}), 404
+
+        if rating < 1 or rating > 5:
+            return jsonify({"error": "Rating must be between 1 and 5"}), 400
+        
+        review = Review(
+            user_id=current_user_id,
+            speaker_id=speaker_id,
+            rating=rating,
+            comment=comment,
+            is_approved=False  # Default to false for moderation
+        )
+        
+        db.session.add(review)
+        db.session.commit()
+
+        return jsonify({
+            "message": "Review submitted successfully",
+            "review_id": review.id
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            "error": "An error occurred while creating the review",
+            "details": str(e)
+        }), 500
 
 # fetch all reviews
 @reviews_bp.route("/reviews", methods=["GET"])

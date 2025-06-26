@@ -1,22 +1,9 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  Button, 
-  Card, 
-  Row, 
-  Col, 
-  Divider, 
-  Spin, 
-  message, 
-  Tag, 
-  Rate,
-  List,
-  Avatar,
-  Form,
-  Input 
-} from 'antd';
+import { Button, Card, Row, Col, Divider, Spin, Tag, Rate, List, Avatar, Form, Input } from 'antd';
 import { UserContext } from '../context/UserContext';
 import moment from 'moment';
+import toast from 'react-hot-toast';
 
 const { TextArea } = Input;
 
@@ -37,7 +24,7 @@ const SpeakerDetailPage = () => {
         const data = await fetchWithAuth(`/speakers/${id}`);
         setSpeaker(data);
       } catch (error) {
-        message.error('Failed to load speaker details');
+        toast.error('We couldn\'t load the speaker details. Please try again later.');
         navigate('/speakers');
       } finally {
         setLoading(false);
@@ -49,11 +36,11 @@ const SpeakerDetailPage = () => {
 
   const handleReviewSubmit = async () => {
     if (!currentUser) {
-      message.warning('Please login to submit a review');
+      toast.error('Please sign in to submit a review');
       return;
     }
     if (!rating || !reviewText) {
-      message.warning('Please provide both rating and review text');
+      toast.error('Please provide both a rating and your review comments');
       return;
     }
   
@@ -75,17 +62,15 @@ const SpeakerDetailPage = () => {
         throw new Error('Failed to submit review');
       }
   
-      const data = await response.json();
-      message.success(data.message || 'Review submitted successfully!');
+      toast.success('Thank you for your review!');
       
-      // Refresh speaker data to show new review
+      // Refresh speaker data
       const speakerData = await fetchWithAuth(`/speakers/${id}`);
       setSpeaker(speakerData);
       setReviewText('');
       setRating(0);
     } catch (error) {
-      message.error(error.message || 'Failed to submit review');
-      console.error('Review submission error:', error);
+      toast.error(error.message || 'We couldn\'t submit your review. Please try again.');
     } finally {
       setReviewLoading(false);
     }

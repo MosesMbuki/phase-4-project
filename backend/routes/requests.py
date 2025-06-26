@@ -9,24 +9,41 @@ requests_bp = Blueprint('requests', __name__)
 @requests_bp.route('/requests/create_request', methods=['POST'])
 @jwt_required()
 def create_request():
-    data = request.get_json()
-    if not data or 'speaker_name' not in data or 'reason' not in data:
-        return jsonify({'error': 'speaker_name and reason are required'}), 400
-    
-    speaker_name = data['speaker_name']
-    manufacturer = data.get('manufacturer', None)
-    reason = data['reason']
-    
-    user_id = get_jwt_identity()
-    new_request = Request(user_id=user_id, speaker_name=speaker_name, manufacturer=manufacturer, reason=reason)
-    
-    default_status = 'Pending'
-    new_request.status = default_status
-    
-    db.session.add(new_request)
-    db.session.commit()
-    
-    return jsonify({'message': 'Request created successfully', 'id': new_request.id}), 201
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Request data is required'}), 400
+            
+        if not all(key in data for key in ['speaker_name', 'reason']):
+            return jsonify({'error': 'speaker_name and reason are required'}), 400
+        
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        new_request = Request(
+            user_id=user_id,
+            speaker_name=data['speaker_name'],
+            manufacturer=data.get('manufacturer'),
+            reason=data['reason'],
+            status='pending'
+        )
+        
+        db.session.add(new_request)
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Request created successfully', 
+            'request_id': new_request.id
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'error': 'Failed to create request',
+            'details': str(e)
+        }), 500
 
 # Fetch requests for current user
 @requests_bp.route('/requests/user', methods=['GET'])
@@ -147,7 +164,7 @@ def update_request_status(request_id):
     current_user = get_jwt_identity()
     user = User.query.get(current_user)
     
-    if not user or not user.is_admin:
+    if not user.is_admin:
         return jsonify({'error': 'Access denied'}), 403
     
     req = Request.query.get(request_id)

@@ -113,6 +113,7 @@ def create_speaker():
         }), 500
     
     return jsonify({'message': 'Speaker created successfully', 'id': speaker.id}), 201
+
 @speakers_bp.route('/speakers', methods=['GET'])
 def get_speakers():
     # Get all speakers with average rating
@@ -215,3 +216,72 @@ def add_review(id):
     db.session.commit()
     
     return jsonify({'message': 'Review added successfully'}), 201
+
+# edit speaker by admin
+@speakers_bp.route('/speakers/<int:id>', methods=['PUT'])
+@jwt_required()
+def update_speaker(id):
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    
+    if not user or not user.is_admin:
+        return jsonify({'error': 'Admin privileges required'}), 403
+    
+    speaker = Speaker.query.get_or_404(id)
+    data = request.get_json()
+    
+    try:
+        # Update manufacturer if changed
+        if 'manufacturer_name' in data:
+            manufacturer = Manufacturer.query.filter_by(name=data['manufacturer_name']).first()
+            if not manufacturer:
+                manufacturer = Manufacturer(
+                    name=data['manufacturer_name'],
+                    logo_url=data.get('manufacturer_logo_url', '')
+                )
+                db.session.add(manufacturer)
+            speaker.manufacturer = manufacturer
+        
+        # Update category if changed
+        if 'category_name' in data:
+            category = Category.query.filter_by(name=data['category_name']).first()
+            if not category:
+                category = Category(
+                    name=data['category_name'],
+                    description=data.get('category_description', '')
+                )
+                db.session.add(category)
+            speaker.category = category
+        
+        # Update other fields
+        if 'model_name' in data:
+            speaker.model_name = data['model_name']
+        if 'price' in data:
+            speaker.price = data['price']
+        if 'image_url' in data:
+            speaker.image_url = data['image_url']
+        if 'specs' in data:
+            speaker.specs = {**speaker.specs, **data['specs']}
+        
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Speaker updated successfully',
+            'speaker': {
+                'id': speaker.id,
+                'model_name': speaker.model_name,
+                'manufacturer': speaker.manufacturer.name,
+                'category': speaker.category.name,
+                'price': float(speaker.price),
+                'image_url': speaker.image_url,
+                'specs': speaker.specs
+            }
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'error': 'Failed to update speaker',
+            'details': str(e)
+        }), 500
+    

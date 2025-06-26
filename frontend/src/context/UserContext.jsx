@@ -11,8 +11,12 @@ export const UserProvider = ({ children }) => {
     const [auth_token, setAuthToken] = useState(() => localStorage.getItem("access_token"));
     const [isLoading, setIsLoading] = useState(false);
 
-    // Enhanced fetch function with authentication
     const fetchWithAuth = useCallback(async (url, options = {}) => {
+        // Validate URL doesn't contain database credentials
+        if (typeof url !== 'string' || url.includes('postgresql://')) {
+            throw new Error('Invalid API endpoint');
+        }
+
         const headers = {
             'Content-Type': 'application/json',
             ...options.headers,
@@ -29,15 +33,12 @@ export const UserProvider = ({ children }) => {
                 headers,
             });
 
-            const data = await response.json();
-
             if (!response.ok) {
-                // Handle specific error messages from backend
-                const errorMsg = data.error || data.msg || `HTTP error! status: ${response.status}`;
-                throw new Error(errorMsg);
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `Request failed with status ${response.status}`);
             }
 
-            return data;
+            return await response.json();
         } catch (error) {
             console.error('API Error:', error);
             toast.error(error.message || 'An error occurred');

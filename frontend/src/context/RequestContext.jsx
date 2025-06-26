@@ -9,14 +9,7 @@ export const RequestProvider = ({ children }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     
-    // Access the UserContext to get the fetchWithAuth function and currentUser
-    const userContextValue = useContext(UserContext);
-    // Check if context exists and has the properties we need
-    if (!userContextValue) {
-        throw new Error('RequestProvider must be wrapped in a UserProvider');
-    }
-    
-    const { fetchWithAuth, currentUser } = userContextValue;
+    const { fetchWithAuth, currentUser } = useContext(UserContext);
 
 
     // Fetch all requests for the current user
@@ -57,34 +50,25 @@ export const RequestProvider = ({ children }) => {
     // Create a new request
     const createRequest = async (speakerName, manufacturer, reason) => {
       try {
-        setLoading(true);
-        const data = await fetchWithAuth('/requests/create_request', {
-          method: 'POST',
-          body: JSON.stringify({
-            speaker_name: speakerName,
-            manufacturer,
-            reason
-          })
-        });
-  
-        setRequests(prev => [...prev, {
-          id: data.id,
-          speaker_name: speakerName,
-          manufacturer,
-          reason,
-          status: 'Pending',
-          request_date: new Date().toISOString(),
-          user_id: currentUser.id
-        }]);
-  
-        toast.success('Request created successfully!');
-        return data;
+          setLoading(true);
+          const response = await fetchWithAuth('/api/requests', {
+              method: 'POST',
+              body: JSON.stringify({
+                  speaker_name: speakerName,
+                  manufacturer,
+                  reason
+              })
+          });
+
+          setRequests(prev => [...prev, response]);
+          toast.success('Request created successfully!');
+          return response;
       } catch (err) {
-        setError(err.message || 'Failed to create request');
-        toast.error(err.message || 'Failed to create request');
-        throw err;
+          setError(err.message);
+          toast.error(err.message || 'Failed to create request');
+          throw err;
       } finally {
-        setLoading(false);
+          setLoading(false);
       }
     };
   

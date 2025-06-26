@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Row, Col, Input, Spin, message, Rate, Button, Modal, Form, InputNumber } from 'antd';
+import { Card, Row, Col, Input, Spin, Rate, Button, Modal, Form, InputNumber } from 'antd';
 import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
 import { UserContext } from '../context/UserContext';
+import toast from 'react-hot-toast';
 
 const { Search } = Input;
 const { TextArea } = Input;
@@ -12,18 +13,19 @@ const Speakers = () => {
   const [speakers, setSpeakers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filteredSpeakers, setFilteredSpeakers] = useState([]);
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchSpeakers = async () => {
       try {
+        setLoading(true);
         const data = await fetchWithAuth('/speakers');
         setSpeakers(data);
         setFilteredSpeakers(data);
       } catch (error) {
-        message.error('Failed to load speakers');
+        toast.error('We couldn\'t load the speaker list. Please refresh the page.');
       } finally {
         setLoading(false);
       }
@@ -33,6 +35,10 @@ const Speakers = () => {
   }, [fetchWithAuth]);
 
   const handleSearch = (value) => {
+    if (!value) {
+      setFilteredSpeakers(speakers);
+      return;
+    }
     const filtered = speakers.filter(speaker =>
       speaker.model_name.toLowerCase().includes(value.toLowerCase()) ||
       speaker.manufacturer.toLowerCase().includes(value.toLowerCase())
@@ -40,45 +46,77 @@ const Speakers = () => {
     setFilteredSpeakers(filtered);
   };
 
-  const navigateToSpeaker = (speakerId) => {
-    navigate(`/speakers/${speakerId}`);
-  };
-
   const showModal = () => {
-    setIsModalVisible(true);
+    setIsModalOpen(true);
   };
 
   const handleCancel = () => {
-    setIsModalVisible(false);
+    setIsModalOpen(false);
     form.resetFields();
+  };
+
+  const navigateToSpeaker = (id) => {
+    navigate(`/speakers/${id}`);
   };
 
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
       setLoading(true);
-      
+  
+      // Prepare features array from comma-separated string
+      const featuresArray = values.specs?.features 
+        ? values.specs.features.split(',').map(f => f.trim()).filter(f => f)
+        : [];
+  
+      // Structure data exactly as backend expects
+      const requestData = {
+        model_name: values.model_name,
+        price: values.price,
+        manufacturer_name: values.manufacturer_name, // Using name instead of ID
+        manufacturer_logo_url: values.manufacturer_logo_url,
+        category_name: values.category_name, // Using name instead of ID
+        image_url: values.image_url || 'https://via.placeholder.com/300',
+        specs: {
+          description: values.specs?.description || '',
+          features: featuresArray,
+          dimensions: values.specs?.dimensions || '',
+          weight: values.specs?.weight || ''
+        }
+      };
+  
       const response = await fetchWithAuth('/speakers', {
         method: 'POST',
-        body: JSON.stringify(values)
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData)
       });
-
-      if (response) {
-        message.success('Speaker added successfully');
-        // Refresh the speakers list
-        const data = await fetchWithAuth('/speakers');
-        setSpeakers(data);
-        setFilteredSpeakers(data);
-        setIsModalVisible(false);
-        form.resetFields();
+  
+      // Check for HTTP errors
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Server rejected the request');
       }
+  
+      const result = await response.json();
+      toast.success(result.message || 'Speaker added successfully!');
+      
+      // Refresh data
+      const updatedSpeakers = await fetchWithAuth('/speakers');
+      setSpeakers(updatedSpeakers);
+      setFilteredSpeakers(updatedSpeakers);
+      setIsModalOpen(false);
+      form.resetFields();
+  
     } catch (error) {
-      message.error('Failed to add speaker: ' + error.message);
+      console.error('Add speaker error:', error);
+      toast.error(error.message || 'Failed to add speaker. Please check your details.');
     } finally {
       setLoading(false);
     }
   };
-
+  
   return (
     <div className="speakers-page" style={{ padding: '24px' }}>
       <h1 style={{ textAlign: 'center', marginBottom: '24px' }}>Our Speaker Collection</h1>
@@ -145,11 +183,12 @@ const Speakers = () => {
 
       <Modal
         title="Add New Speaker"
-        visible={isModalVisible}
+        open={isModalOpen} 
         onOk={handleSubmit}
         onCancel={handleCancel}
         confirmLoading={loading}
         width={800}
+        destroyOnHidden={false} 
       >
         <Form
           form={form}

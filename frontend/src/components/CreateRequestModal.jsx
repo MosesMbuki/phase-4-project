@@ -12,10 +12,10 @@ const CreateRequestModal = ({ visible, onCreate, onCancel }) => {
   return (
     <Modal
       title="Create New Request"
-      visible={visible}
+      open={visible}
       onCancel={onCancel}
       footer={null}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form
         form={form}
