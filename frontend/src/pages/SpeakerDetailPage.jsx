@@ -47,10 +47,6 @@ const SpeakerDetailPage = () => {
     fetchSpeakerData();
   }, [id, navigate, fetchWithAuth]);
 
-  const handleAddToCart = () => {
-    message.success(`${speaker.model_name} added to cart`);
-  };
-
   const handleReviewSubmit = async () => {
     if (!currentUser) {
       message.warning('Please login to submit a review');
@@ -125,15 +121,6 @@ const SpeakerDetailPage = () => {
               ))}
             </ul>
           </div>
-
-          <Button 
-            type="primary" 
-            size="large"
-            onClick={handleAddToCart}
-            style={{ background: 'linear-gradient(to right, #FF4B2B, #FF416C)', border: 'none' }}
-          >
-            Add to Cart
-          </Button>
         </Col>
       </Row>
 
