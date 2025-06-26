@@ -16,10 +16,6 @@ def create_request():
     speaker_name = data['speaker_name']
     manufacturer = data.get('manufacturer', None)
     reason = data['reason']
-
-    speaker = Speaker.query.get(speaker_name)
-    if not speaker:
-        return jsonify({'error': 'Speaker not found'}), 404
     
     user_id = get_jwt_identity()
     new_request = Request(user_id=user_id, speaker_name=speaker_name, manufacturer=manufacturer, reason=reason)
@@ -32,42 +28,36 @@ def create_request():
     
     return jsonify({'message': 'Request created successfully', 'id': new_request.id}), 201
 
-# fetch all requests by user
+# Fetch requests for current user
 @requests_bp.route('/requests/user', methods=['GET'])
 @jwt_required()
 def fetch_requests_by_user():
     user_id = get_jwt_identity()
     requests = Request.query.filter_by(user_id=user_id).all()
     
-    if not requests:
-        return jsonify({'message': 'No requests found for this user'}), 404
-    
-    request_list = []
-    for req in requests:
-        request_data = {
-            'id': req.id,
-            'speaker_name': req.speaker_name,
-            'manufacturer': req.manufacturer,
-            'reason': req.reason,
-            'request_date': req.request_date
-        }
-        request_list.append(request_data)
+    request_list = [{
+        'id': req.id,
+        'user_id': req.user_id,  # Make sure this is included
+        'speaker_name': req.speaker_name,
+        'manufacturer': req.manufacturer,
+        'reason': req.reason,
+        'status': req.status,
+        'request_date': req.request_date.isoformat() if req.request_date else None
+    } for req in requests]
     
     return jsonify(request_list), 200
-
-# fetch all requests only for admin
+# Fetch all requests (for admin)
 @requests_bp.route('/requests', methods=['GET'])
 @jwt_required()
 def fetch_all_requests():
-    current_user = get_jwt_identity()
-    user = User.query.get(current_user)
+    current_user = User.query.get(get_jwt_identity())
     
-    if not user or not user.is_admin:
-        return jsonify({'error': 'Access denied'}), 403
+    if not current_user.is_admin:
+        return jsonify({'error': 'Unauthorized'}), 403
     
     requests = Request.query.all()
-    
     request_list = []
+    
     for req in requests:
         request_data = {
             'id': req.id,
@@ -76,7 +66,7 @@ def fetch_all_requests():
             'manufacturer': req.manufacturer,
             'reason': req.reason,
             'status': req.status,
-            'request_date': req.request_date
+            'request_date': req.request_date.isoformat() if req.request_date else None
         }
         request_list.append(request_data)
     
@@ -106,20 +96,44 @@ def update_request(request_id):
     
     return jsonify({'message': 'Request updated successfully', 'id': req.id}), 200
 
-# delete request
-@requests_bp.route('/requests/<int:request_id>', methods=['DELETE'])
+# Allow request owner to update their request
+@requests_bp.route('/requests/user/<int:request_id>', methods=['PUT'])
 @jwt_required()
-def delete_request(request_id):
-    current_user = get_jwt_identity()
-    user = User.query.get(current_user)
-    
-    if not user or not user.is_admin:
-        return jsonify({'error': 'Access denied'}), 403
-    
+def update_user_request(request_id):
+    current_user_id = get_jwt_identity()
     req = Request.query.get(request_id)
     
     if not req:
         return jsonify({'error': 'Request not found'}), 404
+    
+    if req.user_id != current_user_id:
+        return jsonify({'error': 'You can only edit your own requests'}), 403
+    
+    data = request.get_json()
+    
+    if 'speaker_name' in data:
+        req.speaker_name = data['speaker_name']
+    if 'manufacturer' in data:
+        req.manufacturer = data['manufacturer']
+    if 'reason' in data:
+        req.reason = data['reason']
+    
+    db.session.commit()
+    
+    return jsonify({'message': 'Request updated successfully', 'id': req.id}), 200
+
+# Allow request owner to delete their request
+@requests_bp.route('/requests/user/<int:request_id>', methods=['DELETE'])
+@jwt_required()
+def delete_user_request(request_id):
+    current_user_id = get_jwt_identity()
+    req = Request.query.get(request_id)
+    
+    if not req:
+        return jsonify({'error': 'Request not found'}), 404
+    
+    if req.user_id != current_user_id:
+        return jsonify({'error': 'You can only delete your own requests'}), 403
     
     db.session.delete(req)
     db.session.commit()

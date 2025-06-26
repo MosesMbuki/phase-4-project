@@ -1,134 +1,114 @@
-import random
+from app import app, db, mail
+from models import User, Manufacturer, Category, Speaker, Review, Request
+from werkzeug.security import generate_password_hash
 from datetime import datetime, timedelta
-from app import db, app
-from models import User, Manufacturer, Category, Speaker, Review, Request, TokenBlocklist
+import random
+import json
 
-def seed_database():
+def create_sample_data():
     with app.app_context():
-        print("🗑️ Clearing existing data...")
-        # Clear all data (in reverse order of dependencies)
-        TokenBlocklist.query.delete()
-        Request.query.delete()
-        Review.query.delete()
-        Speaker.query.delete()
-        Category.query.delete()
-        Manufacturer.query.delete()
-        User.query.delete()
-        db.session.commit()
+        # Clear existing data
+        db.drop_all()
+        db.create_all()
 
-        print("🌱 Seeding users...")
         # Create admin user
         admin = User(
-            username="admin",
-            email="admin@audioalchemy.com",
-            password="admin",
+            username='admin',
+            email='admin@audioalchemy.com',
+            password=generate_password_hash('admin123'),
             is_admin=True,
-            join_date=datetime.utcnow()
+            profile_pic='https://example.com/admin.jpg'
         )
-        
+        db.session.add(admin)
+
         # Create regular users
-        users = [
-            User(
-                username=f"user{i}",
-                email=f"user{i}@example.com",
-                password=f"user_{i}",
-                join_date=datetime.utcnow() - timedelta(days=random.randint(1, 365))
-            ) for i in range(1, 6)
-        ]
-        users.append(admin)
-        db.session.add_all(users)
-        db.session.commit()
+        users = []
+        for i in range(1, 6):
+            user = User(
+                username=f'user{i}',
+                email=f'user{i}@example.com',
+                password=generate_password_hash(f'user{i}pass'),
+                profile_pic=f'https://example.com/user{i}.jpg'
+            )
+            users.append(user)
+            db.session.add(user)
 
-        print("🏭 Seeding manufacturers...")
+        # Create manufacturers
         manufacturers = [
-            Manufacturer(
-                name="Bose",
-                country="USA",
-                website="https://www.bose.com",
-                logo_url="https://logo.clearbit.com/bose.com"
-            ),
-            Manufacturer(
-                name="Sony",
-                country="Japan",
-                website="https://www.sony.com",
-                logo_url="https://logo.clearbit.com/sony.com"
-            ),
-            Manufacturer(
-                name="Sennheiser",
-                country="Germany",
-                website="https://www.sennheiser.com",
-                logo_url="https://logo.clearbit.com/sennheiser.com"
-            )
+            Manufacturer(name='Bose', country='USA', website='https://www.bose.com', logo_url='https://example.com/bose.jpg'),
+            Manufacturer(name='Sony', country='Japan', website='https://www.sony.com', logo_url='https://example.com/sony.jpg'),
+            Manufacturer(name='JBL', country='USA', website='https://www.jbl.com', logo_url='https://example.com/jbl.jpg'),
+            Manufacturer(name='Sennheiser', country='Germany', website='https://www.sennheiser.com', logo_url='https://example.com/sennheiser.jpg'),
+            Manufacturer(name='Audio-Technica', country='Japan', website='https://www.audio-technica.com', logo_url='https://example.com/audio-technica.jpg')
         ]
-        db.session.add_all(manufacturers)
-        db.session.commit()
+        for m in manufacturers:
+            db.session.add(m)
 
-        print("📦 Seeding categories...")
+        # Create categories
         categories = [
-            Category(name="Bookshelf", description="Compact speakers for small spaces"),
-            Category(name="Floorstanding", description="Large speakers for home theaters"),
-            Category(name="Portable", description="Wireless and battery-powered speakers"),
-            Category(name="Studio Monitors", description="Professional audio equipment")
+            Category(name='Bookshelf', description='Compact speakers for small spaces'),
+            Category(name='Floor-standing', description='Large speakers for home theaters'),
+            Category(name='Portable', description='Wireless and battery-powered speakers'),
+            Category(name='Studio Monitors', description='Professional audio equipment'),
+            Category(name='Soundbars', description='TV audio enhancement')
         ]
-        db.session.add_all(categories)
+        for c in categories:
+            db.session.add(c)
+
         db.session.commit()
 
-        print("🔊 Seeding speakers...")
+        # Create speakers
         speakers = []
-        for i in range(1, 11):
-            speakers.append(
-                Speaker(
-                    model_name=f"Model {i}00",
-                    manufacturer_id=random.choice([m.id for m in manufacturers]),
-                    category_id=random.choice([c.id for c in categories]),
-                    price=random.uniform(99.99, 1999.99),
-                    specs={
-                        "power": f"{random.randint(20, 500)}W",
-                        "frequency_response": f"{random.randint(40, 20000)}Hz",
-                        "impedance": f"{random.choice([4, 6, 8])}Ω"
-                    },
-                    image_url=f"https://picsum.photos/400/300?random={i}",
-                    added_by=random.choice([u.id for u in users]),
-                    date_added=datetime.utcnow() - timedelta(days=random.randint(1, 180))
-                )
+        specs = {
+            "description": "High-quality audio with deep bass",
+            "features": ["Bluetooth", "Wireless", "Voice Assistant"],
+            "short_description": "Premium sound experience"
+        }
+        
+        for i in range(1, 21):
+            speaker = Speaker(
+                model_name=f'Model {i}',
+                manufacturer_id=random.choice(manufacturers).id,
+                category_id=random.choice(categories).id,
+                price=random.uniform(50, 2000),
+                specs=specs,
+                image_url=f'https://example.com/speaker{i}.jpg',
+                added_by=random.choice(users).id,
+                date_added=datetime.utcnow() - timedelta(days=random.randint(1, 365))
             )
-        db.session.add_all(speakers)
+            speakers.append(speaker)
+            db.session.add(speaker)
+
         db.session.commit()
 
-        print("⭐ Seeding reviews...")
-        reviews = []
+        # Create reviews
         for speaker in speakers:
-            for i in range(random.randint(1, 5)):
-                reviews.append(
-                    Review(
-                        user_id=random.choice([u.id for u in users]),
-                        speaker_id=speaker.id,
-                        rating=random.randint(1, 5),
-                        comment_text=f"This speaker is {'amazing' if random.random() > 0.3 else 'ok'}!",
-                        post_date=datetime.utcnow() - timedelta(days=random.randint(1, 90)),
-                        is_approved=random.random() > 0.2  # 80% approved
-                    )
+            for i in range(random.randint(0, 10)):
+                review = Review(
+                    user_id=random.choice(users).id,
+                    speaker_id=speaker.id,
+                    rating=random.randint(1, 5),
+                    comment=f'This is a sample review for {speaker.model_name}',
+                    post_date=datetime.utcnow() - timedelta(days=random.randint(1, 30)),
+                    is_approved=True
                 )
-        db.session.add_all(reviews)
-        db.session.commit()
+                db.session.add(review)
 
-        print("📝 Seeding requests...")
-        requests = []
-        for i in range(5):
-            requests.append(
-                Request(
-                    user_id=random.choice([u.id for u in users if not u.is_admin]),
-                    speaker_name=f"Requested Model {i}",
-                    manufacturer=f"Potential Manufacturer {i}",
-                    reason=f"We need this because {random.choice(['clients are asking', 'market is missing', 'innovation'])}",
-                    status=random.choice(['pending', 'approved', 'rejected']),
-                    request_date=datetime.utcnow() - timedelta(days=random.randint(1, 30))
-                )
+        # Create requests
+        for i in range(1, 6):
+            request = Request(
+                user_id=random.choice(users).id,
+                speaker_name=f'Requested Speaker {i}',
+                manufacturer=f'Manufacturer {i}',
+                reason=f'Reason for request {i}',
+                status=random.choice(['pending', 'approved', 'rejected']),
+                request_date=datetime.utcnow() - timedelta(days=random.randint(1, 30))
             )
-        db.session.add_all(requests)
+            db.session.add(request)
+
         db.session.commit()
 
-        print("✅ Database seeded successfully!")
+        print("Database seeded successfully!")
 
 if __name__ == '__main__':
-    seed_database()
+    create_sample_data()

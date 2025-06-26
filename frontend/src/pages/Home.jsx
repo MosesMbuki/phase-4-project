@@ -1,6 +1,8 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const Home = () => {
+  const navigate = useNavigate();
   return (
     <div className="min-h-screen bg-black text-white font-sans overflow-x-hidden">
       {/* Hero Section */}
@@ -23,7 +25,9 @@ const Home = () => {
           <p className="text-xl md:text-2xl font-light mb-8 leading-relaxed text-gray-300">
             Transforming sound into pure emotion through precision engineering
           </p>
-          <button className="bg-gradient-to-r from-[#FF4B2B] to-[#FF416C] px-12 py-3 uppercase tracking-wider text-sm md:text-base transition-all duration-300 hover:opacity-90">
+          <button
+            onClick={() => navigate('/speakers')}
+            className="bg-gradient-to-r from-[#FF4B2B] to-[#FF416C] px-12 py-3 uppercase tracking-wider text-sm md:text-base transition-all duration-300 hover:opacity-90">
             EXPLORE COLLECTIONS
           </button>
         </div>

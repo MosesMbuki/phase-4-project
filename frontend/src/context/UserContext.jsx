@@ -11,7 +11,7 @@ export const UserProvider = ({ children }) => {
     const [auth_token, setAuthToken] = useState(() => localStorage.getItem("access_token"));
     const [isLoading, setIsLoading] = useState(false);
 
-    // Fetch function with authentication
+    // Enhanced fetch function with authentication
     const fetchWithAuth = useCallback(async (url, options = {}) => {
         const headers = {
             'Content-Type': 'application/json',
@@ -29,11 +29,14 @@ export const UserProvider = ({ children }) => {
                 headers,
             });
 
+            const data = await response.json();
+
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                // Handle specific error messages from backend
+                const errorMsg = data.error || data.msg || `HTTP error! status: ${response.status}`;
+                throw new Error(errorMsg);
             }
 
-            const data = await response.json();
             return data;
         } catch (error) {
             console.error('API Error:', error);
@@ -48,18 +51,23 @@ export const UserProvider = ({ children }) => {
     const register_user = async (username, email, password) => {
         try {
             toast.loading('Registering user...');
-            const res = await fetchWithAuth('api_url/users', {
+            const res = await fetch(`${api_url}/users`, {  // Fixed URL (removed 'api_url' string)
                 method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify({ username, email, password }),
             });
 
+            const data = await res.json();
             toast.dismiss();
-            if (res.error) {
-                toast.error(res.error);
-                return { success: false, error: res.error };
+
+            if (!res.ok) {
+                toast.error(data.error || 'Registration failed');
+                return { success: false, error: data.error };
             }
 
-            toast.success(res.success || 'Registration successful!');
+            toast.success(data.success || 'Registration successful!');
             navigate('/login');
             return { success: true };
         } catch (error) {
@@ -72,22 +80,27 @@ export const UserProvider = ({ children }) => {
     const login_user = async (email, password) => {
         try {
             toast.loading('Logging in...');
-            const res = await fetchWithAuth('/login', {
+            const res = await fetch(`${api_url}/login`, {
                 method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify({ email, password }),
             });
 
+            const data = await res.json();
             toast.dismiss();
-            if (res.error) {
-                toast.error(res.error);
-                return { success: false, error: res.error };
+
+            if (!res.ok) {
+                toast.error(data.error || 'Login failed');
+                return { success: false, error: data.error };
             }
 
-            if (res.access_token) {
-                localStorage.setItem('access_token', res.access_token);
-                setAuthToken(res.access_token);
+            if (data.access_token) {
+                localStorage.setItem('access_token', data.access_token);
+                setAuthToken(data.access_token);
                 toast.success('Logged in successfully!');
-                navigate('/questions');
+                navigate('/');  // Changed from '/questions' to more generic '/'
                 return { success: true };
             }
 
@@ -102,23 +115,27 @@ export const UserProvider = ({ children }) => {
     // ========= User Logout ==========
     const logout_user = async () => {
         try {
+            if (!auth_token) {
+                // If no token, just clear local state
+                localStorage.removeItem('access_token');
+                setAuthToken(null);
+                setCurrentUser(null);
+                navigate('/login');
+                return { success: true };
+            }
+
             toast.loading('Logging out...');
             const res = await fetchWithAuth('/logout', {
                 method: 'DELETE',
             });
 
             toast.dismiss();
-            if (res.success) {
-                localStorage.removeItem('access_token');
-                setAuthToken(null);
-                setCurrentUser(null);
-                toast.success(res.success || 'Logged out successfully!');
-                navigate('/login');
-                return { success: true };
-            }
-
-            toast.error(res.error || 'Failed to logout');
-            return { success: false, error: res.error };
+            localStorage.removeItem('access_token');
+            setAuthToken(null);
+            setCurrentUser(null);
+            toast.success(res.success || 'Logged out successfully!');
+            navigate('/login');
+            return { success: true };
         } catch (error) {
             toast.dismiss();
             // Even if API fails, clear local auth
@@ -140,9 +157,19 @@ export const UserProvider = ({ children }) => {
             });
 
             toast.dismiss();
+            
             if (res.error) {
                 toast.error(res.error);
                 return { success: false, error: res.error };
+            }
+
+            // Update current user in state
+            if (res.success) {
+                setCurrentUser(prev => ({
+                    ...prev,
+                    username,
+                    email
+                }));
             }
 
             toast.success(res.success || 'Profile updated successfully!');
@@ -162,17 +189,12 @@ export const UserProvider = ({ children }) => {
             });
 
             toast.dismiss();
-            if (res.success) {
-                localStorage.removeItem('access_token');
-                setAuthToken(null);
-                setCurrentUser(null);
-                toast.success(res.success || 'Profile deleted successfully!');
-                navigate('/login');
-                return { success: true };
-            }
-
-            toast.error(res.error || 'Failed to delete profile');
-            return { success: false, error: res.error };
+            localStorage.removeItem('access_token');
+            setAuthToken(null);
+            setCurrentUser(null);
+            toast.success(res.success || 'Profile deleted successfully!');
+            navigate('/login');
+            return { success: true };
         } catch (error) {
             toast.dismiss();
             return { success: false, error: error.message };
@@ -189,8 +211,9 @@ export const UserProvider = ({ children }) => {
         try {
             setIsLoading(true);
             const user = await fetchWithAuth('/current_user');
-            if (user.msg) {
-                toast.error(user.msg);
+            
+            if (user.error) {
+                toast.error(user.error);
                 logout_user();
             } else {
                 setCurrentUser(user);
@@ -206,18 +229,6 @@ export const UserProvider = ({ children }) => {
         fetchCurrentUser();
     }, [auth_token, fetchCurrentUser]);
 
-    // Auto-logout when token expires
-    useEffect(() => {
-        const checkAuth = () => {
-            if (auth_token && currentUser) {
-                // You might want to add token expiration check here
-            }
-        };
-
-        const interval = setInterval(checkAuth, 60000); // Check every minute
-        return () => clearInterval(interval);
-    }, [auth_token, currentUser]);
-
     // Context value
     const context_data = {
         auth_token,
@@ -228,7 +239,8 @@ export const UserProvider = ({ children }) => {
         logout_user,
         update_user_profile,
         delete_profile,
-        fetchCurrentUser, // Expose if needed for manual refresh
+        fetchCurrentUser,
+        fetchWithAuth,  // Expose fetchWithAuth for other components to use
     };
 
     return (

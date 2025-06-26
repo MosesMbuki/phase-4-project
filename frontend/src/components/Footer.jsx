@@ -11,7 +11,7 @@ const Footer = () => {
             to="/" 
             className="font-semibold bg-gradient-to-r from-[#FF4B2B] to-[#FF416C] bg-clip-text text-transparent hover:underline"
           >
-            YourBrand™
+            Audio Alchemy ™
           </Link>. All Rights Reserved.
         </span>
         <ul className="flex flex-wrap items-center mt-3 text-sm font-medium text-gray-600 sm:mt-0">
@@ -25,26 +25,10 @@ const Footer = () => {
           </li>
           <li>
             <Link 
-              to="/privacy" 
-              className="hover:bg-gradient-to-r from-[#FF4B2B] to-[#FF416C] hover:bg-clip-text hover:text-transparent me-4 md:me-6 transition-all duration-300"
-            >
-              Privacy Policy
-            </Link>
-          </li>
-          <li>
-            <Link 
               to="/licensing" 
               className="hover:bg-gradient-to-r from-[#FF4B2B] to-[#FF416C] hover:bg-clip-text hover:text-transparent me-4 md:me-6 transition-all duration-300"
             >
               Licensing
-            </Link>
-          </li>
-          <li>
-            <Link 
-              to="/contact" 
-              className="hover:bg-gradient-to-r from-[#FF4B2B] to-[#FF416C] hover:bg-clip-text hover:text-transparent transition-all duration-300"
-            >
-              Contact
             </Link>
           </li>
         </ul>
