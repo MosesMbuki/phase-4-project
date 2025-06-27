@@ -25,8 +25,7 @@ function App() {
             <Route path="profile" element={<Profile />} />
             <Route path="speakers" element={<Speakers />} />
             <Route path="speakers/:id" element={<SpeakerDetailPage />} />
-              <Route path="about" element={<About/>} />
-            {/* Add other routes as needed */}
+            <Route path="about" element={<About/>} />
           </Route>
           </Routes>
           </RequestProvider>
